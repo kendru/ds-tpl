@@ -1,12 +1,13 @@
 {
   "name": "ds-tpl",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Dead-simple, fast text templates",
   "main": "lib/index.js",
   "scripts": {
     "build": "babel src --out-dir lib",
     "test": "mocha --compilers js:babel-register --recursive test",
-    "test:watch": "mocha --compilers js:babel-register --recursive -w \"test/**/*.test.js\" test"
+    "test:watch": "mocha --compilers js:babel-register --recursive -w \"test/**/*.test.js\" test",
+    "prepublish": "npm run build && npm test"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
