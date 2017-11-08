@@ -1,0 +1,23 @@
+{
+  "name": "ds-tpl",
+  "version": "1.0.0",
+  "description": "Dead-simple, fast text templates",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --require babel-polyfill --compilers js:babel-register --recursive test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kendru/ds-test.git"
+  },
+  "keywords": [
+    "templates",
+    "parsing"
+  ],
+  "author": "Andrew Meredith <ameredith@quantummetric.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kendru/ds-test/issues"
+  },
+  "homepage": "https://github.com/kendru/ds-test#readme"
+}
