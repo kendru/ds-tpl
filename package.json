@@ -8,6 +8,9 @@
     "test": "mocha --compilers js:babel-register --recursive test",
     "test:watch": "mocha --compilers js:babel-register --recursive -w \"test/**/*.test.js\" test"
   },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kendru/ds-test.git"
