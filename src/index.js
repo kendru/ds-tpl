@@ -3,17 +3,17 @@ const TokenStream = require('./TokenStream')
 
 function compileTemplate(str) {
     const tokenStream = new TokenStream(new CharStream(str))
-    const stack = []
+    const tokens = []
 
     while (!tokenStream.isEnd) {
-        stack.push(tokenStream.next())
+        tokens.push(tokenStream.next())
     }
 
     return function applyTemplate(data) {
         let out = ''
         let nextToken
 
-        while((nextToken = stack.shift())) {
+        for (let nextToken of tokens) {
             const { type, value } = nextToken
             if (type === 'var') {
                 out += data[value] || ''

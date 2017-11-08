@@ -60,5 +60,12 @@ describe('Templates', () => {
 
             expect(tpl({ stuff: 'Wimey' })).to.equal('Timey Wimey');
         });
+
+        it('should be able to evaluate the same template multiple times', function () {
+            const tpl = compileTemplate('{{ord}} time');
+
+            expect(tpl({ ord: 'First' })).to.equal('First time');
+            expect(tpl({ ord: 'Second' })).to.equal('Second time');
+        });
     });
 });
