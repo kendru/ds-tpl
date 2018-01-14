@@ -1,28 +1,16 @@
 const CharStream = require('./CharStream')
 const TokenStream = require('./TokenStream')
+const Parser = require('./Parser')
+
 
 function compileTemplate(str) {
     const tokenStream = new TokenStream(new CharStream(str))
-    const tokens = []
-
-    while (!tokenStream.isEnd) {
-        tokens.push(tokenStream.next())
-    }
+    const parser = new Parser(tokenStream)
+    const program = parser.parse()
 
     return function applyTemplate(data) {
-        let out = ''
-        let nextToken
-
-        for (let nextToken of tokens) {
-            const { type, value } = nextToken
-            if (type === 'var') {
-                out += data[value] || ''
-            } else {
-                out += value
-            }
-        }
-
-        return out
+        let environment = [data]
+        return program.evaluate(environment)
     }
 }
 

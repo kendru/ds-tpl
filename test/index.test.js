@@ -67,5 +67,59 @@ describe('Templates', () => {
             expect(tpl({ ord: 'First' })).to.equal('First time');
             expect(tpl({ ord: 'Second' })).to.equal('Second time');
         });
+
+        it('should evaluate a dotted variable as a nested object', function () {
+            const tpl = compileTemplate('My name is {{me.name}}');
+
+            expect(tpl({ me: { name: 'Andrew' } })).to.equal('My name is Andrew');
+        })
+    });
+
+    describe('sequences', function () {
+        
+        it('should map over an array of scalar values', function () {
+            const tpl = compileTemplate('>{%for vals as val%}{{val}},{%end%}<');
+
+            expect(tpl({ vals: [1, 2, 3] })).to.equal('>1,2,3,<');
+        });
+
+        it('should map over an array of objects', function () {
+            const tpl = compileTemplate('<ul>{%for people as person%}<li>{{person.name}}</li>{%end%}</ul>');
+            const people = [
+                { name: 'Alice' },
+                { name: 'Bob' },
+                { name: 'Carol' }
+            ];
+
+            expect(tpl({ people })).to.equal('<ul><li>Alice</li><li>Bob</li><li>Carol</li></ul>');
+        });
+
+        it ('should handle nested loops of independent iterators', function () {
+            const tpl = compileTemplate('{% for letters as letter %}{% for numbers as number %}{{letter}}/{{number}} {% end %}- {% end %}')
+            const data = {
+                letters: ['a', 'b'],
+                numbers: [1, 2]
+            };
+
+            expect(tpl(data)).to.equal('a/1 a/2 - b/1 b/2 - ');
+        });
+
+        it('should handle nested loops of dependent iterators', function () {
+            const tpl = compileTemplate('{% for people as p %}{{p.name}} likes: {% for p.hobbies as h %}{{h}},{% end %}\n{% end %}')
+            const data = {
+                people: [
+                    {
+                        name: 'Andrew',
+                        hobbies: ['fitness', 'beer']
+                    },
+                    {
+                        name: 'Diana',
+                        hobbies: ['reading', 'watercolour']
+                    }
+                ]
+            };
+
+            expect(tpl(data)).to.equal('Andrew likes: fitness,beer,\nDiana likes: reading,watercolour,\n')
+        })
     });
 });
