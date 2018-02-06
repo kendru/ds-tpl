@@ -122,4 +122,62 @@ describe('Templates', () => {
             expect(tpl(data)).to.equal('Andrew likes: fitness,beer,\nDiana likes: reading,watercolour,\n')
         })
     });
+
+    describe('conditionals', function () {
+
+        it('should parse a simple conditional', function () {
+            const tpl = compileTemplate('{% if true %}ok{% end %}');
+            expect(tpl).to.be.a('function');
+        });
+
+        it('should handle simple boolean values', function () {
+            const tpl = compileTemplate('{% if true %}ok{% end %}{% if false %}not ok{% end %}');
+            expect(tpl({})).to.equal('ok');
+        });
+
+        it('should handle equality between string literals', function () {
+            const tpl = compileTemplate('{% if "hi" == "hi" %}ok{% end %}{% if "hi" == "bye" %}not ok{% end %}');
+            expect(tpl({})).to.equal('ok');
+        });
+
+        it('should handle equality between string numbers', function () {
+            const tpl = compileTemplate('{% if 42 == 42 %}ok{% end %}{% if 42 == 17 %}not ok{% end %}');
+            expect(tpl({})).to.equal('ok');
+        });
+
+        it('should perform a strict comparison', function () {
+            const tpl = compileTemplate('{% if 42 == "42" %}equal{% end %}');
+            expect(tpl({})).to.equal('');
+        });
+
+        it('should perform a comparison involving a variable and a literal', function () {
+            const tpl = compileTemplate('{% if foo == 42 %}ok{% end %}{% if foo == 99 %}not ok{% end %}');
+            expect(tpl({ foo: 42 })).to.equal('ok');
+        });
+
+        it('should perform a comparison involving 2 variables', function () {
+            const tpl = compileTemplate('{% if foo == bar %}ok{% end %}{% if foo == baz %}not ok{% end %}');
+            expect(tpl({ foo: 42, bar: 42, baz: 'not 42' })).to.equal('ok');
+        });
+
+        it('should compare with an inequality', function () {
+            const tpl = compileTemplate('{% if 42 != 17 %}ok{% end %}{% if 42 != 42 %}not ok{% end %}');
+            expect(tpl({})).to.equal('ok');
+        });
+
+        it('should combine expressions with and', function () {
+            const tpl = compileTemplate('{% if 42 == 42 && name == "Jim" %}ok{% end %}{% if 42 == 42 && name == "Bob" %}not ok{% end %}');
+            expect(tpl({ name: 'Jim' })).to.equal('ok');
+        });
+
+        it('should combine expressions with or', function () {
+            const tpl = compileTemplate('{% if name == "Bob" || 42 == 42 %}ok{% end %}{% if name == "Bob" || 42 == 17 %}not ok{% end %}');
+            expect(tpl({ name: 'Jim' })).to.equal('ok');
+        });
+
+        it('should use the value of an else branch when supplied for falsey condition', function() {
+            const tpl = compileTemplate('This is {% if name == "Bob" || name == "Robert" %}Bob{% else %}not Bob{% end %}')
+            expect(tpl({ name: 'Roberta' })).to.equal('This is not Bob');
+        });
+    });
 });

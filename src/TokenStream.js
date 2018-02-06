@@ -1,3 +1,16 @@
+function or(...fns) {
+    return c => {
+        for (let fn of fns) {
+            if (fn(c)) return true
+        }
+        return false
+    }
+}
+
+function isChar(cCompare) {
+    return c => c === cCompare
+}
+
 function anyOf(cs) {
     return c => cs.indexOf(c) !== -1
 }
@@ -5,6 +18,19 @@ function anyOf(cs) {
 function noneOf(cs) {
     return c => cs.indexOf(c) === -1
 }
+
+function inRange(c1, c2) {
+    const cLow = c1.charCodeAt(0)
+    const cHigh = c2.charCodeAt(0)
+
+    return c => c.charCodeAt(0) >= cLow && c.charCodeAt(0) <= cHigh
+}
+
+const isQuote = anyOf('\'"')
+const isOperator = anyOf('=!&|')
+const isIdentStart = or(isChar('_'), inRange('a', 'z'), inRange('A', 'Z'))
+const isNumeral = inRange('0', '9')
+const isIdentChar = or(isIdentStart, isNumeral)
 
 class TokenStream {
 
@@ -85,6 +111,10 @@ class TokenStream {
         switch (type) {
             case 'for':
                 return this.readFor()
+            case 'if':
+                return this.readIf()
+            case 'else':
+                return { type: 'else' }
             case 'end':
                 return { type: 'end' }
             default:
@@ -101,6 +131,91 @@ class TokenStream {
         this.consumeWhitespace()
         
         return { type: 'for', iter, binding }
+    }
+
+    readIf() {
+        let expr = []
+        let nextChild
+        while(nextChild = this.readExprToken()) {
+            expr.push(nextChild)
+        }
+        this.consumeWhitespace()
+
+        return { type: 'if', expr }
+    }
+
+    readExprToken() {
+        const nextChar = this.charStream.peek()
+        let out = null
+        if (isQuote(nextChar)) {
+            out = this.readStringLiteral()
+        } else if (isNumeral(nextChar)) {
+            out = this.readNumber()
+        } else if (isOperator(nextChar)) {
+            out = this.readOperator()
+        } else if (isIdentStart(nextChar)) {
+            out = this.readIdentifier()
+        }
+
+        this.consumeWhitespace()
+
+        return out
+    }
+
+    readStringLiteral() {
+        const quoteChar = this.charStream.next()
+        // We do not support string escaping
+        let val = this.readWhile(c => c !== quoteChar)
+        this.charStream.next()
+
+        return { type: 'string-literal', val }
+    }
+
+    readNumber() {
+        let val = this.readWhile(isNumeral)
+        if (this.charStream.peek() === '.') {
+            val += this.charStream.next() + this.readWhile(isNumeral)
+        }
+
+        return { type: 'number', val }
+    }
+
+    readOperator() {
+        let opChar = this.charStream.next()
+        let nextChar = this.charStream.peek()
+
+        switch (opChar) {
+            case '=':
+                if (nextChar !== '=') {
+                    this.panic('Unknown operator', '=')
+                }
+                this.charStream.next()
+                return { 'type': 'operator', val: '==' }
+            case '!':
+                if (nextChar !== '=') {
+                    this.panic('Unknown operator', '=')
+                }
+                this.charStream.next()
+                return { 'type': 'operator', val: '!=' }
+            case '&':
+                if (nextChar !== '&') {
+                    this.panic('Unknown operator', '&')
+                }
+                this.charStream.next()
+                return { 'type': 'operator', val: '&&' }
+            case '|':
+                if (nextChar !== '|') {
+                    this.panic('Unknown operator', '|')
+                }
+                this.charStream.next()
+                return { 'type': 'operator', val: '||' }
+            default:
+                this.panic('Unrecognized operator character')
+        }
+    }
+
+    readIdentifier() {
+        return { type: 'identifier', val: this.readWhile(isIdentChar) }
     }
 
     consumeWhitespace() {

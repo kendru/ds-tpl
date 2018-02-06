@@ -81,6 +81,41 @@ class VariableNode extends ASTNode {
     }
 }
 
+// This node is essentially the same as a StringNode, but it is always evaluated in the context of an expression
+// rather than as program output
+class StringLiteralNode extends ASTNode {
+    constructor(str) {
+        super('string-literal')
+        this.str = str
+    }
+
+    evaluate(environment) {
+        return this.str
+    }
+}
+
+class NumberNode extends ASTNode {
+    constructor(n) {
+        super('number')
+        this.n = n
+    }
+
+    evaluate(environment) {
+        return parseFloat(this.n)
+    }
+}
+
+class BooleanNode extends ASTNode {
+    constructor(val) {
+        super('boolean')
+        this.val = val
+    }
+
+    evaluate(environment) {
+        return this.val === 'true'
+    }
+}
+
 class ForNode extends ASTNode {
     constructor(iter, binding, children) {
         super('for')
@@ -106,6 +141,73 @@ class ForNode extends ASTNode {
         }
         
         return out
+    }
+}
+
+class EqualsNode extends ASTNode {
+    constructor(e1, e2) {
+        super('==')
+        this.e1 = e1
+        this.e2 = e2
+    }
+
+    evaluate(environment) {
+        return this.e1.evaluate(environment) === this.e2.evaluate(environment)
+    }
+}
+
+class NotEqualsNode extends ASTNode {
+    constructor(e1, e2) {
+        super('!=')
+        this.e1 = e1
+        this.e2 = e2
+    }
+
+    evaluate(environment) {
+        return this.e1.evaluate(environment) !== this.e2.evaluate(environment)
+    }
+}
+
+class AndNode extends ASTNode {
+    constructor(e1, e2) {
+        super('&&')
+        this.e1 = e1
+        this.e2 = e2
+    }
+
+    evaluate(environment) {
+        return this.e1.evaluate(environment) && this.e2.evaluate(environment)
+    }
+}
+
+class OrNode extends ASTNode {
+    constructor(e1, e2) {
+        super('||')
+        this.e1 = e1
+        this.e2 = e2
+    }
+
+    evaluate(environment) {
+        return this.e1.evaluate(environment) || this.e2.evaluate(environment)
+    }
+}
+
+class IfNode extends ASTNode {
+    constructor(expr, thenChildren, elseChildren = []) {
+        super('if')
+        this.expr = expr
+        this.thenChildren = thenChildren
+        this.elseChildren = elseChildren
+    }
+
+    evaluate(environment) {
+        const result = this.expr.evaluate(environment)
+        let subProg
+        subProg = (!!result) ?
+            new Block(this.thenChildren) :
+            new Block(this.elseChildren)
+
+        return subProg.evaluate(environment)
     }
 }
 
@@ -138,11 +240,106 @@ class Parser {
             case 'var':
                 return new VariableNode(token.value)
             case 'for':
-                return new ForNode(token.iter, token.binding, this.windStack('end'))
+                return new ForNode(token.iter, token.binding, this.windStack('end')[0])
+            case 'if': {
+                const expr = this.parseBooleanExpr(token.expr)
+                if (!expr) {
+                    throw new Error('If node does not contain a well-formed boolean expression')
+                }
+                const [ thenNodes, endType ] = this.windStack('else', 'end')
+                const elseNodes = (endType === 'else') ? this.windStack('end')[0] : []
+                return new IfNode(expr, thenNodes, elseNodes)
+            }
         }
     }
 
-    windStack(untilType) {
+    parseBooleanExpr(tokens) {
+        return this.parseCompoundBooleanExpression(tokens) || this.parseSimpleBooleanExpression(tokens)
+    }
+
+    parseCompoundBooleanExpression(tokens) {
+        if (tokens.length < 3) {
+            // there is no compound boolean expression that is less than 3 tokens, e.g. false || true
+            return null
+        }
+        const lhNode = this.parseSimpleBooleanExpression(tokens)
+        if (!lhNode) {
+            return null
+        }
+        if (tokens.length === 0) {
+            return lhNode
+        }
+
+        const op = tokens.shift()
+        const rhNode = this.parseCompoundBooleanExpression(tokens)
+        switch (op.val) {
+            case '&&':
+                return new AndNode(lhNode, rhNode)
+            case '||':
+                return new OrNode(lhNode, rhNode)
+            default:
+                return null
+        }
+    }
+
+    // parseCompoundBooleanExpression relies on this mutating tokens and "consuming" it
+    parseSimpleBooleanExpression(tokens) {
+        const lhs = tokens.shift()
+        const lhNode = this.parseBoolean(lhs) || this.parseStringLiteral(lhs) || this.parseNumber(lhs) || this.parseVariable(lhs)
+        if (tokens.length === 0) {
+            return lhNode
+        }
+        let op = tokens[0]
+        switch (op.val) {
+            case '==': {
+                tokens.shift()
+                const rhs = tokens.shift()
+                const rhNode = this.parseBoolean(rhs) || this.parseStringLiteral(rhs) || this.parseNumber(rhs) || this.parseVariable(rhs)
+                return new EqualsNode(lhNode, rhNode)
+            }
+            case '!=': {
+                tokens.shift()
+                const rhs = tokens.shift()
+                const rhNode = this.parseBoolean(rhs) || this.parseStringLiteral(rhs) || this.parseNumber(rhs) || this.parseVariable(rhs)
+                return new NotEqualsNode(lhNode, rhNode)
+            }
+            default:
+                // Note that a "boolean expression" may be simply a string literal, number, or variable, since we expose
+                // JavaScript's native boolean punning
+                return lhs
+        }
+    }
+
+    parseBoolean(token) {
+        if (token.type !== 'identifier') {
+            return null
+        }
+
+        const normalizedVal = token.val.toLowerCase()
+        return  (normalizedVal === 'true' || normalizedVal === 'false') ?
+            new BooleanNode(normalizedVal) :
+            null
+    }
+
+    parseStringLiteral(token) {
+        return (token.type === 'string-literal') ?
+            new StringLiteralNode(token.val) :
+            null
+    }
+
+    parseNumber(token) {
+        return (token.type === 'number') ?
+            new NumberNode(token.val) :
+            null
+    }
+
+    parseVariable(token) {
+        return (token.type === 'identifier') ?
+            new VariableNode(token.val) :
+            null
+    }
+
+    windStack(...tryTypes) {
         const stackPos = this.stack.length
         const startToken = this.lastToken
 
@@ -151,8 +348,8 @@ class Parser {
                 throw new Error(`Unexpected EOF while reading ${startToken.type} starting at ${startToken.pos.line}:${startToken.pos.col}`)
             }
 
-            if (token.type === untilType) {
-                return this.stack.splice(stackPos)
+            if (tryTypes.indexOf(token.type) !== -1) {
+                return [ this.stack.splice(stackPos), token.type ]
             }
 
             this.stack.push(this.parseToken(token))

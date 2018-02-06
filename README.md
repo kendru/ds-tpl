@@ -2,8 +2,9 @@
 
 Dead-simple, fast text templates.
 
-Mustache-style templates that perform only interpolation and iteration.
-No logic, no filtering, no extra features.
+Mustache-style templates that perform only interpolation, iteration, and conditionals
+with simple boolean expressions.
+No heavy logic, no filtering, no extra features.
 
 Is it fast? Yes.
 
@@ -46,4 +47,8 @@ console.log(tpl({ planets }));
  *  - Uranus
  *  - Neptune
  */
+
+const tpl = compileTemplate('This is {% if name == "Bob" || name == "Robert" %}Bob{% else %}not Bob{% end %}')
+console.log(tpl({ name: 'Robert' })); // Logs: "This is Bob"
+console.log(tpl({ name: 'Roberta' })); // Logs: "This is not Bob"
 ```
