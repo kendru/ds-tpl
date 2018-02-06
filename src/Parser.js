@@ -1,3 +1,6 @@
+const CharStream = require('./CharStream')
+const TokenStream = require('./TokenStream')
+
 function getIn(bindings, name) {
     let path = name.split('.')
     // Short-circuit for common case of simple name
@@ -212,10 +215,24 @@ class IfNode extends ASTNode {
 }
 
 class Parser {
-    constructor(tokenStream) {
+
+    static forString(str) {
+        const charStream = new CharStream(str)
+        const tokenStream = new TokenStream(charStream)
+
+        return new Parser(tokenStream)
+    }
+
+    constructor(tokenStream, partials = {}) {
         this.tokenStream = tokenStream
         this.lastToken = null
         this.stack = []
+        this.partials = {}
+    }
+
+    withPartials(partials) {
+        this.partials = partials
+        return this
     }
 
     parse() {
@@ -235,6 +252,12 @@ class Parser {
 
     parseToken(token) {
         switch (token.type) {
+            case 'partial':
+                const partialStr = this.partials[token.val];
+                if (!partialStr) {
+                    this.tokenStream.panic(`No partial named ${token.val} registered on parser`)
+                }
+                return Parser.forString(partialStr).withPartials(this.partials).parse()
             case 'string':
                 return new StringNode(token.value)
             case 'var':
@@ -244,7 +267,7 @@ class Parser {
             case 'if': {
                 const expr = this.parseBooleanExpr(token.expr)
                 if (!expr) {
-                    throw new Error('If node does not contain a well-formed boolean expression')
+                    this.tokenStream.panic('`if` node does not contain a well-formed boolean expression')
                 }
                 const [ thenNodes, endType ] = this.windStack('else', 'end')
                 const elseNodes = (endType === 'else') ? this.windStack('end')[0] : []
@@ -356,5 +379,6 @@ class Parser {
         }
     }
 }
+Parser.partials = Symbol('partials');
 
 module.exports = Parser

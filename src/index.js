@@ -1,12 +1,8 @@
-const CharStream = require('./CharStream')
-const TokenStream = require('./TokenStream')
 const Parser = require('./Parser')
 
 
-function compileTemplate(str) {
-    const tokenStream = new TokenStream(new CharStream(str))
-    const parser = new Parser(tokenStream)
-    const program = parser.parse()
+function compileTemplate(str, partials = {}) {
+    const program = Parser.forString(str).withPartials(partials).parse()
 
     return function applyTemplate(data) {
         let environment = [data]

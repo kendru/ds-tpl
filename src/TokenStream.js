@@ -69,6 +69,8 @@ class TokenStream {
         if (nextChar == '{') {
             if (this.charStream.peek(1) === '{') {
                 return this.readVar()
+            } else if (this.charStream.peek(1) === '>') {
+                return this.readPartial()
             } else if (this.charStream.peek(1) === '%') {
                 return this.readControl()
             }
@@ -99,10 +101,20 @@ class TokenStream {
         return expr
     }
 
+    readPartial() {
+        this.readCharSeq('{>')
+        this.consumeWhitespace()
+        const val = this.readWhile(noneOf(' }'))
+        this.consumeWhitespace()
+        this.readCharSeq('}')
+
+        return { type: 'partial', val }
+    }
+
     readStr() {
         const value = this.readUntil(c => {
             return this.charStream.isEnd ||
-            (c === '{' && anyOf('{%')(this.charStream.peek(1)))
+            (c === '{' && anyOf('{%>')(this.charStream.peek(1)))
         })
         return { type: 'string', value }
     }

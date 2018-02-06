@@ -180,4 +180,29 @@ describe('Templates', () => {
             expect(tpl({ name: 'Roberta' })).to.equal('This is not Bob');
         });
     });
+
+    describe('partials', function () {
+
+        it('should evaluate simple partials', function () {
+            const tpl = compileTemplate('<h1>{> body}</h1>', {
+                body: 'Hello, {{name}}'
+            });
+            expect(tpl({ name: 'World' })).to.equal('<h1>Hello, World</h1>');
+        });
+
+        it('should evaluate partials inside blocks', function () {
+            const tpl = compileTemplate('<dl>{% for words as word%}{>wordEntry}{% end %}</dl>', {
+                wordEntry: '<dt>{{word.word}}</dt><dd>{{word.definition}}</dd>'
+            });
+            const data = {
+                words: [
+                    { word: 'Septentrional', definition: 'Of the North' },
+                    { word: 'Apricity', definition: 'The feeling of the warmth of the sun in winter' }
+                ]
+            };
+            const expectedText = '<dl><dt>Septentrional</dt><dd>Of the North</dd><dt>Apricity</dt><dd>The feeling of the warmth of the sun in winter</dd></dl>';
+
+            expect(tpl(data)).to.equal(expectedText);
+        })
+    });
 });
