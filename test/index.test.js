@@ -179,6 +179,11 @@ describe('Templates', () => {
             const tpl = compileTemplate('This is {% if name == "Bob" || name == "Robert" %}Bob{% else %}not Bob{% end %}')
             expect(tpl({ name: 'Roberta' })).to.equal('This is not Bob');
         });
+
+        it('should allow dotted variables in an if expression', function() {
+            const tpl = compileTemplate('{% if foo.bar == "bar" %}ok{% end %}');
+            expect(tpl({ foo: { bar: 'bar' } })).to.equal('ok');
+        });
     });
 
     describe('partials', function () {

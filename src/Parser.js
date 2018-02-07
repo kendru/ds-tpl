@@ -237,7 +237,7 @@ class Parser {
 
     parse() {
         const program = new Block()
-        
+
         while (!this.tokenStream.isEnd) {
             program.children.push(this.parseToken(this.nextToken()))
         }

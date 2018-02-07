@@ -30,7 +30,7 @@ const isQuote = anyOf('\'"')
 const isOperator = anyOf('=!&|')
 const isIdentStart = or(isChar('_'), inRange('a', 'z'), inRange('A', 'Z'))
 const isNumeral = inRange('0', '9')
-const isIdentChar = or(isIdentStart, isNumeral)
+const isIdentChar = or(isIdentStart, isNumeral, isChar('.'))
 
 class TokenStream {
 
@@ -141,7 +141,7 @@ class TokenStream {
         this.consumeWhitespace()
         const binding = this.readWhile(noneOf('% '))
         this.consumeWhitespace()
-        
+
         return { type: 'for', iter, binding }
     }
 
