@@ -9,13 +9,13 @@ function getIn(bindings, name) {
     }
     let nextName
     let value = bindings
-    
+
     while (path.length) {
         nextName = path[0]
         path.splice(0, 1)
         value = value[nextName]
         if (typeof value === 'undefined') {
-            return null
+            return undefined
         }
     }
 
@@ -31,14 +31,14 @@ function resolve(env, name) {
         }
     }
 
-    return null
+    return undefined
 }
 
 class ASTNode {
     constructor(type) {
         this.type = type
     }
-    
+
     evaluate(environment) {
         throw new Error(`${this.type} does not implement ASTNode.evaluate()`)
     }
@@ -54,7 +54,7 @@ class Block extends ASTNode {
         let out = ''
 
         for (let child of this.children) {
-            out += child.evaluate(environment)
+            out += child.evaluate(environment) || ''
         }
 
         return out
@@ -80,7 +80,7 @@ class VariableNode extends ASTNode {
 
     evaluate(environment) {
         // Should this throw an exception instead?
-        return resolve(environment, this.name) || ''
+        return resolve(environment, this.name)
     }
 }
 
@@ -142,7 +142,7 @@ class ForNode extends ASTNode {
             let subProg = new Block(this.children)
             out += subProg.evaluate(childEnv)
         }
-        
+
         return out
     }
 }
@@ -281,8 +281,8 @@ class Parser {
     }
 
     parseCompoundBooleanExpression(tokens) {
-        if (tokens.length < 3) {
-            // there is no compound boolean expression that is less than 3 tokens, e.g. false || true
+        if (tokens.length < 2) {
+            // there is no compound boolean expression that is a single tokens, e.g. false || true, myVar exists
             return null
         }
         const lhNode = this.parseSimpleBooleanExpression(tokens)
@@ -308,7 +308,7 @@ class Parser {
     // parseCompoundBooleanExpression relies on this mutating tokens and "consuming" it
     parseSimpleBooleanExpression(tokens) {
         const lhs = tokens.shift()
-        const lhNode = this.parseBoolean(lhs) || this.parseStringLiteral(lhs) || this.parseNumber(lhs) || this.parseVariable(lhs)
+        const lhNode = this.parseBooleanVal(lhs)
         if (tokens.length === 0) {
             return lhNode
         }
@@ -316,21 +316,27 @@ class Parser {
         switch (op.val) {
             case '==': {
                 tokens.shift()
-                const rhs = tokens.shift()
-                const rhNode = this.parseBoolean(rhs) || this.parseStringLiteral(rhs) || this.parseNumber(rhs) || this.parseVariable(rhs)
+                const rhNode = this.parseBooleanVal(tokens.shift())
                 return new EqualsNode(lhNode, rhNode)
             }
             case '!=': {
                 tokens.shift()
-                const rhs = tokens.shift()
-                const rhNode = this.parseBoolean(rhs) || this.parseStringLiteral(rhs) || this.parseNumber(rhs) || this.parseVariable(rhs)
+                const rhNode = this.parseBooleanVal(tokens.shift())
                 return new NotEqualsNode(lhNode, rhNode)
+            }
+            case 'exists': {
+                tokens.shift()
+                return new NotEqualsNode(lhNode, new VariableNode('undefined'))
             }
             default:
                 // Note that a "boolean expression" may be simply a string literal, number, or variable, since we expose
                 // JavaScript's native boolean punning
                 return lhs
         }
+    }
+
+    parseBooleanVal(token) {
+        return this.parseBoolean(token) || this.parseStringLiteral(token) || this.parseNumber(token) || this.parseVariable(token);
     }
 
     parseBoolean(token) {

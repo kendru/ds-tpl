@@ -22,7 +22,7 @@ console.log(tpl(data)); // Logs: "Hello, Earth"
 // Example 2: Iteration and property access
 const tpl = compileTemplate(
 `The first planet's name is: {{planets.0.name}}. All of them are:{% for planets as planet %}
-    - {{planet.name}}{% endfor %}`
+    - {{planet.name}}{% end %}`
 );
 const planets = [
     { name: 'Mercury' },

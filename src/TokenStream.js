@@ -27,8 +27,8 @@ function inRange(c1, c2) {
 }
 
 const isQuote = anyOf('\'"')
-const isOperator = anyOf('=!&|')
 const isIdentStart = or(isChar('_'), inRange('a', 'z'), inRange('A', 'Z'))
+const isOperatorStart = anyOf('=!&|')
 const isNumeral = inRange('0', '9')
 const isIdentChar = or(isIdentStart, isNumeral, isChar('.'))
 
@@ -148,7 +148,7 @@ class TokenStream {
     readIf() {
         let expr = []
         let nextChild
-        while(nextChild = this.readExprToken()) {
+        while (nextChild = this.readExprToken()) {
             expr.push(nextChild)
         }
         this.consumeWhitespace()
@@ -163,10 +163,10 @@ class TokenStream {
             out = this.readStringLiteral()
         } else if (isNumeral(nextChar)) {
             out = this.readNumber()
-        } else if (isOperator(nextChar)) {
+        } else if (isOperatorStart(nextChar)) {
             out = this.readOperator()
         } else if (isIdentStart(nextChar)) {
-            out = this.readIdentifier()
+            out = this.readIdentifierOrKeyword()
         }
 
         this.consumeWhitespace()
@@ -226,8 +226,15 @@ class TokenStream {
         }
     }
 
-    readIdentifier() {
-        return { type: 'identifier', val: this.readWhile(isIdentChar) }
+    readIdentifierOrKeyword() {
+        const token = this.readWhile(isIdentChar)
+
+        switch (token) {
+            case 'exists':
+                return { type: 'operator', val: 'exists' }
+            default:
+                return { type: 'identifier', val: token }
+        }
     }
 
     consumeWhitespace() {

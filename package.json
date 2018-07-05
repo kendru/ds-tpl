@@ -1,6 +1,6 @@
 {
   "name": "ds-tpl",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Dead-simple, fast text templates",
   "main": "lib/index.js",
   "scripts": {

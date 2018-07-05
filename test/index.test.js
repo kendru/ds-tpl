@@ -76,7 +76,7 @@ describe('Templates', () => {
     });
 
     describe('sequences', function () {
-        
+
         it('should map over an array of scalar values', function () {
             const tpl = compileTemplate('>{%for vals as val%}{{val}},{%end%}<');
 
@@ -183,6 +183,32 @@ describe('Templates', () => {
         it('should allow dotted variables in an if expression', function() {
             const tpl = compileTemplate('{% if foo.bar == "bar" %}ok{% end %}');
             expect(tpl({ foo: { bar: 'bar' } })).to.equal('ok');
+        });
+
+        it('Should correctly compare against undefined', function() {
+            const tpl = compileTemplate('{% if foo.bar == undefined %}undefined{% else %}defined{% end %}');
+
+            expect(tpl({ foo: {} })).to.equal('undefined');
+            expect(tpl({ foo: { bar: undefined } })).to.equal('undefined');
+            expect(tpl({ foo: { bar: 'here' } })).to.equal('defined');
+            expect(tpl({ foo: { bar: null } })).to.equal('defined');
+            expect(tpl({ foo: { bar: false } })).to.equal('defined');
+        });
+
+        it('Should correctly compare against null', function() {
+            const tpl = compileTemplate('{% if foo.bar == null %}null{% else %}not{% end %}');
+
+            expect(tpl({ foo: { bar: null } })).to.equal('null');
+            expect(tpl({ foo: {} })).to.equal('not');
+            expect(tpl({ foo: { bar: undefined } })).to.equal('not');
+            expect(tpl({ foo: { bar: 'here' } })).to.equal('not');
+            expect(tpl({ foo: { bar: false } })).to.equal('not');
+        });
+
+        it('should check for existence', function() {
+            const tpl = compileTemplate('{% if foo exists %}exists{% else %}does not exist{% end %}');
+            expect(tpl({ foo: 'here' })).to.equal('exists');
+            expect(tpl({ })).to.equal('does not exist');
         });
     });
 
